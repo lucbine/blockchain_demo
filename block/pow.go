@@ -46,8 +46,6 @@ func (pow *ProofOfWork) Run() (int64, []byte) {
 		nonce       = 0
 	)
 
-	fmt.Printf("Mining the block containing %s,maxNonce=%d\n", pow.block.Data, maxNonce)
-
 	for nonce < maxNonce {
 		currentHash = pow.getNonceHash(int64(nonce))
 		hashInt.SetBytes(currentHash) //将hash换成大整数（用来对比的数据）
@@ -65,7 +63,7 @@ func (pow *ProofOfWork) Run() (int64, []byte) {
 func (pow *ProofOfWork) getNonceHash(nonce int64) []byte {
 	data := bytes.Join([][]byte{
 		pow.block.PrevBlockHash,
-		pow.block.Data,
+		pow.block.HashTransactions(),
 		Int2Hex(pow.block.Timestamp),
 		Int2Hex(int64(targetBits)),
 		Int2Hex(nonce),

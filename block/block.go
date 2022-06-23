@@ -9,25 +9,26 @@ import (
 )
 
 type Block struct {
-	Timestamp     int64  //时间
-	Data          []byte //数据
-	PrevBlockHash []byte //前块hash值
-	Hash          []byte //当前块hash值
-	Nonce         int64  //随机值
+	Timestamp     int64          //时间
+	PrevBlockHash []byte         //前块hash值
+	Hash          []byte         //当前块hash值
+	Nonce         int64          //随机值
+	Transactions  []*Transaction //交易信息
 }
 
 //创建创世纪块
 
-func NewGenesisBlock() *Block {
-	return NewBlock("Genesis Block", []byte{})
+func NewGenesisBlock(coinbase *Transaction) *Block {
+	//给用户奖励
+	return NewBlock([]*Transaction{coinbase}, []byte{})
 }
 
 //创建区块
 
-func NewBlock(data string, prevBlockHash []byte) *Block {
+func NewBlock(txs []*Transaction, prevBlockHash []byte) *Block {
 	block := &Block{
 		Timestamp:     time.Now().Unix(),
-		Data:          []byte(data),
+		Transactions:  txs,
 		PrevBlockHash: prevBlockHash,
 	}
 
@@ -47,8 +48,16 @@ func NewBlock(data string, prevBlockHash []byte) *Block {
 func (b *Block) SetHash() {
 	tm := []byte(strconv.FormatInt(b.Timestamp, 10))
 
+	txIds := make([][]byte, 0)
+
+	for _, tx := range b.Transactions {
+		txIds = append(txIds, tx.ID)
+	}
+
+	mergeHash := append(txIds, tm, b.PrevBlockHash)
+
 	//将前一个hash、交易信息、时间戳 合并
-	headers := bytes.Join([][]byte{tm, b.Data, b.PrevBlockHash}, []byte{})
+	headers := bytes.Join(mergeHash, []byte{})
 	hash := sha256.Sum256(headers)
 
 	//[32]byte -> []byte
@@ -77,4 +86,21 @@ func UnSerialize(b []byte) *Block {
 	decoder.Decode(&block)
 
 	return &block
+}
+
+//构建区块交易hash
+
+func (b *Block) HashTransactions() []byte {
+	var (
+		txHashs [][]byte
+		txHash  [32]byte
+	)
+
+	for _, tx := range b.Transactions {
+		txHashs = append(txHashs, tx.ID)
+	}
+
+	txHash = sha256.Sum256(bytes.Join(txHashs, []byte{}))
+
+	return txHash[:]
 }
